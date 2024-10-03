@@ -1,6 +1,10 @@
 import argparse
 import logging
 import hashlib
+import os
+import shutil
+import time
+from datetime import datetime
 
 def calculate_md5(file_path):
     hash_md5 = hashlib.md5()
@@ -12,6 +16,65 @@ def calculate_md5(file_path):
     except FileNotFoundError:
         logging.error(f"File not found for MD5 calculation: {file_path}")
         return None
+    
+def sync_folders(source, replica):
+    logging.info("Synchronization started")
+
+    # Ensure replica folder exists
+    if not os.path.exists(replica):
+        os.makedirs(replica)
+        logging.info(f"Replica folder created: {replica}")
+
+    # Sync all files and folders from source to replica
+    for root, dirs, files in os.walk(source):
+        rel_path = os.path.relpath(root, source)
+        replica_root = os.path.join(replica, rel_path)
+
+        # Create directories in replica if they don't exist
+        for dir in dirs:
+            replica_dir = os.path.join(replica_root, dir)
+            if not os.path.exists(replica_dir):
+                os.makedirs(replica_dir)
+                logging.info(f"Directory created: {replica_dir}")
+
+        # Copy or update files
+        for file in files:
+            source_file = os.path.join(root, file)
+            replica_file = os.path.join(replica_root, file)
+
+            if os.path.exists(replica_file):
+                # Compare MD5 hashes
+                source_md5 = calculate_md5(source_file)
+                replica_md5 = calculate_md5(replica_file)
+                if source_md5 and replica_md5 and source_md5 != replica_md5:
+                    shutil.copy2(source_file, replica_file)
+                    logging.info(f"File copied: {source_file} -> {replica_file}")
+
+    # Remove files and folders in replica that are not in source
+    for root, dirs, files in os.walk(replica, topdown=False):
+        rel_path = os.path.relpath(root, replica)
+        source_root = os.path.join(source, rel_path)
+
+        # Remove files
+        for file in files:
+            replica_file = os.path.join(root, file)
+            source_file = os.path.join(source_root, file)
+            if not os.path.exists(source_file):
+                os.remove(replica_file)
+                logging.info(f"File remowed: {replica_file}")
+        # Remove directories
+        for dir in dirs:
+            replica_dir = os.path.join(root, dir)
+            source_dir = os.path.join(source_root, dir)
+            if not os.path.exists(source_dir):
+                shutil.rmtree(replica_dir)
+                logging.info(f"Directory removed: {replica_dir}")
+    
+    logging.info("Synchronization completed!")
+
+
+
+
 
 def setup_logging(log_file):
     # Log to a file
