@@ -72,7 +72,10 @@ def sync_folders(source, replica):
     
     logging.info("Synchronization completed!")
 
-
+def periodic_sync(source, replica, interval):
+    while True:
+        sync_folders(source, replica)
+        time.sleep(interval)
 
 
 
@@ -105,6 +108,8 @@ def main():
     logging.info(f"Source: {args.source}")
     logging.info(f"Replica: {args.replica}")
     logging.info(f"Interval: {args.interval} seconds")
+
+    periodic_sync(args.source, args.replica, args.interval)
 
     if __name__ == "__main__":
         main()
