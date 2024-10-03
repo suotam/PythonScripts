@@ -1,5 +1,17 @@
 import argparse
 import logging
+import hashlib
+
+def calculate_md5(file_path):
+    hash_md5 = hashlib.md5()
+    try:
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+    except FileNotFoundError:
+        logging.error(f"File not found for MD5 calculation: {file_path}")
+        return None
 
 def setup_logging(log_file):
     # Log to a file
