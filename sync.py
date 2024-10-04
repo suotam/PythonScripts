@@ -42,13 +42,17 @@ def sync_folders(source, replica):
             source_file = os.path.join(root, file)
             replica_file = os.path.join(replica_root, file)
 
-            if os.path.exists(replica_file):
-                # Compare MD5 hashes
+            # Copy the file if it doesn't exist in the replica
+            if not os.path.exists(replica_file):
+                shutil.copy2(source_file, replica_file)
+                logging.info(f"File copied: {source_file} -> {replica_file}")
+            else:
+                # Compare MD5 hashes if the file already exists
                 source_md5 = calculate_md5(source_file)
                 replica_md5 = calculate_md5(replica_file)
                 if source_md5 and replica_md5 and source_md5 != replica_md5:
                     shutil.copy2(source_file, replica_file)
-                    logging.info(f"File copied: {source_file} -> {replica_file}")
+                    logging.info(f"File updated: {source_file} -> {replica_file}")
 
     # Remove files and folders in replica that are not in source
     for root, dirs, files in os.walk(replica, topdown=False):
@@ -61,7 +65,8 @@ def sync_folders(source, replica):
             source_file = os.path.join(source_root, file)
             if not os.path.exists(source_file):
                 os.remove(replica_file)
-                logging.info(f"File remowed: {replica_file}")
+                logging.info(f"File removed: {replica_file}")
+
         # Remove directories
         for dir in dirs:
             replica_dir = os.path.join(root, dir)
@@ -69,7 +74,7 @@ def sync_folders(source, replica):
             if not os.path.exists(source_dir):
                 shutil.rmtree(replica_dir)
                 logging.info(f"Directory removed: {replica_dir}")
-    
+
     logging.info("Synchronization completed!")
 
 def periodic_sync(source, replica, interval):
@@ -111,6 +116,7 @@ def main():
 
     periodic_sync(args.source, args.replica, args.interval)
 
-    if __name__ == "__main__":
+
+if __name__ == "__main__":
         main()
 
